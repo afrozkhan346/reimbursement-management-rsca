@@ -1,36 +1,172 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Reimbursement Management App
 
-## Getting Started
+A role-based reimbursement platform built with Next.js, TypeScript, and Prisma.
 
-First, run the development server:
+The app supports complete expense lifecycle management:
+
+- Employee expense submission
+- Multi-step conditional approvals (percentage, specific role, hybrid)
+- Manager/admin approval actions
+- Admin settings for workflow and user management
+- Currency conversion and OCR-assisted receipt parsing
+
+## Tech Stack
+
+- Next.js 16 (App Router)
+- React 19 + TypeScript
+- Prisma ORM + PostgreSQL
+- Tailwind CSS 4
+- JWT auth via `jose` (HTTP-only cookie session)
+- Zod validation
+- Tesseract.js for OCR
+
+## Core Features
+
+### Role-Based Workspaces
+
+- `EMPLOYEE`: submit expenses, review personal expense statuses, profile
+- `MANAGER`: process approvals, monitor team/company expenses
+- `ADMIN`: full manager permissions + company/workflow/user administration
+
+### Approval Engine
+
+- Sequential step-based approvals
+- Rule types:
+	- `PERCENTAGE` (example: 60% of approvers)
+	- `SPECIFIC_ROLE` (example: specific person/department)
+	- `HYBRID` (percentage OR specific role)
+- Automatic progression across steps
+- Immediate rejection handling
+
+### Expense Processing
+
+- Expense categories and validation
+- Currency conversion (base-currency views)
+- Receipt OCR endpoint for extracting amount/date/description/category
+
+## Project Structure
+
+```text
+src/
+	app/
+		api/                 # Next.js route handlers
+	components/            # UI components by role
+	lib/                   # auth, prisma, schemas, approval engine, currency
+prisma/
+	schema.prisma          # data model
+	seed.ts                # optional Prisma seed script
+```
+
+Note: there is also a `backend/` directory in this repository, but the current active app flow is implemented in `src/` + `prisma/` (Next.js API routes with Prisma).
+
+## Data Model Overview
+
+Main entities:
+
+- `Company`
+- `User` (self-referencing manager relationship)
+- `Expense`
+- `ApprovalRule`
+- `ExpenseApprovalQueue`
+
+Enums include `Role`, `ExpenseStatus`, `ExpenseCategory`, `ApprovalRuleType`, and `ApprovalAction`.
+
+## Environment Variables
+
+Create `.env` in the project root with:
+
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DB_NAME"
+JWT_SECRET="replace-with-a-strong-secret"
+```
+
+Notes:
+
+- `JWT_SECRET` has a development fallback in code, but set it explicitly for real environments.
+- `DATABASE_URL` is required by Prisma.
+
+## Local Development Setup
+
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Initialize database
+
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+### 3. Run the app
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Seed sample data (optional but recommended)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Call:
 
-## Learn More
+```http
+GET /api/seed
+```
 
-To learn more about Next.js, take a look at the following resources:
+Sample seeded accounts (password: `password123`):
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- admin@acme.com (`ADMIN`)
+- manager@acme.com (`MANAGER`)
+- employee@acme.com (`EMPLOYEE`)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## API Overview
 
-## Deploy on Vercel
+### Auth
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `POST /api/auth/signup`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `POST /api/auth/logout`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Domain APIs
+
+- `GET, POST /api/expenses`
+- `POST /api/approvals`
+- `GET, POST, DELETE /api/approval-rules`
+- `GET, POST /api/users`
+- `GET, PATCH /api/company`
+- `GET /api/currencies`
+- `POST /api/ocr`
+- `GET /api/seed`
+
+Most non-auth routes are protected by middleware and require the auth cookie.
+
+## Scripts
+
+- `npm run dev` - start development server
+- `npm run build` - production build
+- `npm run start` - start built app
+- `npm run lint` - run ESLint
+
+## Branching Workflow
+
+For this repository, feature work is commonly pushed to `rushikesh` and then merged into `main`.
+
+Example:
+
+```bash
+git checkout rushikesh
+git add .
+git commit -m "docs: update project README"
+git push origin rushikesh
+```
+
+## Production Notes
+
+- Use a strong `JWT_SECRET`.
+- Run with a managed PostgreSQL instance.
+- Restrict `GET /api/seed` access or remove it in production.
+- Configure HTTPS so secure auth cookies work correctly.
