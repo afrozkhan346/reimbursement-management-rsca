@@ -1,13 +1,94 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useState, type ReactNode } from "react";
+import { useForm, type FieldError, type UseFormRegisterReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { loginSchema } from "@/lib/schemas";
 import { useRouter } from "next/navigation";
-import { AtSign, Lock, Loader2, ArrowRight, CreditCard, CheckCircle2, Scale, Users } from "lucide-react";
+import { Loader2, ArrowRight, CreditCard, CheckCircle2, Scale, Users } from "lucide-react";
 import Link from "next/link";
+
+interface InputFieldProps {
+  id: "email" | "password";
+  label: string;
+  type: "email" | "password";
+  placeholder: string;
+  icon: ReactNode;
+  autoFocus?: boolean;
+  registration: UseFormRegisterReturn;
+  error?: FieldError;
+}
+
+function InputField({ id, label, type, placeholder, icon, autoFocus = false, registration, error }: InputFieldProps) {
+  const [isFocused, setIsFocused] = useState(autoFocus);
+
+  return (
+    <div>
+      <label htmlFor={id} className="mb-2 block text-sm font-medium text-gray-700">{label}</label>
+      <div className="flex items-center gap-3">
+        <span className="pointer-events-none flex h-5 w-5 items-center justify-center text-gray-400">{icon}</span>
+        <div
+          className={`flex-1 rounded-lg border bg-white transition-colors ${
+            isFocused ? "border-blue-600 shadow-[0_0_0_1px_#2563eb]" : "border-gray-300"
+          }`}
+        >
+        <input
+          id={id}
+          type={type}
+          placeholder={placeholder}
+          autoFocus={autoFocus}
+          required
+          {...registration}
+          onFocus={() => setIsFocused(true)}
+          onBlur={(e) => {
+            setIsFocused(false);
+            registration.onBlur(e);
+          }}
+          className="block w-full rounded-lg border-none bg-transparent px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 outline-none"
+        />
+        </div>
+      </div>
+      {error && <p className="mt-2 text-sm text-error">{error.message}</p>}
+    </div>
+  );
+}
+
+function TestAccounts({ onSelect }: { onSelect: (role: "ADMIN" | "MANAGER" | "EMPLOYEE") => void }) {
+  return (
+    <div className="mt-8">
+      <div className="flex items-center gap-3 text-center">
+        <span className="h-px flex-1 bg-gray-200" />
+        <span className="text-xs font-semibold uppercase tracking-[0.05em] text-gray-500">QUICK TEST ACCOUNTS</span>
+        <span className="h-px flex-1 bg-gray-200" />
+      </div>
+
+      <div className="mt-6 grid grid-cols-3 gap-3">
+        <button
+          type="button"
+          onClick={() => onSelect("ADMIN")}
+          className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+        >
+          Admin
+        </button>
+        <button
+          type="button"
+          onClick={() => onSelect("MANAGER")}
+          className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+        >
+          Manager
+        </button>
+        <button
+          type="button"
+          onClick={() => onSelect("EMPLOYEE")}
+          className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+        >
+          Employee
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -113,124 +194,81 @@ export default function LoginPage() {
           </div>
 
           <form className="flex flex-col gap-6" onSubmit={form.handleSubmit(onSubmit)}>
-              {error && (
-                <div className="rounded-xl border border-red-200/90 bg-red-50 px-3 py-3 text-sm text-red-800">{error}</div>
+            {error && (
+              <div className="rounded-xl border border-red-200/90 bg-red-50 px-3 py-3 text-sm text-red-800">{error}</div>
+            )}
+
+            <InputField
+              id="email"
+              label="Email"
+              type="email"
+              placeholder="you@company.com"
+              autoFocus
+              registration={form.register("email")}
+              error={form.formState.errors.email}
+              icon={(
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="4"></circle>
+                  <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"></path>
+                </svg>
               )}
+            />
 
-              <div>
-                <label htmlFor="login-email" className="mb-2 block text-sm font-medium text-gray-700">
-                  Email
-                </label>
-                <div className="relative">
-                  <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                    <AtSign className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="login-email"
-                    {...form.register("email")}
-                    type="email"
-                    autoComplete="email"
-                    required
-                    placeholder="you@company.com"
-                    className="block w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-3 text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 sm:text-sm"
-                  />
-                </div>
-                {form.formState.errors.email && (
-                  <p className="mt-2 text-sm text-error">{form.formState.errors.email.message}</p>
-                )}
-              </div>
+            <InputField
+              id="password"
+              label="Password"
+              type="password"
+              placeholder="••••••••"
+              registration={form.register("password")}
+              error={form.formState.errors.password}
+              icon={(
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              )}
+            />
 
-              <div>
-                <label htmlFor="login-password" className="mb-2 block text-sm font-medium text-gray-700">
-                  Password
-                </label>
-                <div className="relative">
-                  <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                    <Lock className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="login-password"
-                    {...form.register("password")}
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    placeholder="••••••••"
-                    className="block w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-3 text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 sm:text-sm"
-                  />
-                </div>
-                {form.formState.errors.password && (
-                  <p className="mt-2 text-sm text-error">{form.formState.errors.password.message}</p>
-                )}
-              </div>
+            <div className="flex items-center justify-between">
+              <label htmlFor="remember-me" className="flex items-center gap-2">
+                <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600" />
+                <span className="text-sm text-gray-700">Remember me</span>
+              </label>
+              <a href="#forgot" className="text-sm font-medium text-blue-600 hover:text-blue-500 hover:underline">
+                Forgot password?
+              </a>
+            </div>
 
-              <div className="flex items-center justify-between">
-                <label htmlFor="remember-me" className="flex items-center gap-2">
-                  <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600" />
-                  <span className="text-sm text-gray-700">Remember me</span>
-                </label>
-                <div className="text-sm">
-                  <a href="#" className="font-medium text-blue-600 hover:text-blue-500 hover:underline">Forgot password?</a>
-                </div>
-              </div>
-
-              <div>
-                <button
-                  type="submit"
-                  disabled={form.formState.isSubmitting}
-                  className="flex w-full justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                >
-                  {form.formState.isSubmitting ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <>
-                      Continue
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </>
-                  )}
-                </button>
-              </div>
+            <button
+              type="submit"
+              disabled={form.formState.isSubmitting}
+              className="flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+            >
+              {form.formState.isSubmitting ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </button>
           </form>
 
-          <div className="mt-8">
-            <div className="flex items-center gap-3 text-center">
-              <span className="h-px flex-1 bg-gray-200" />
-              <span className="text-xs font-medium uppercase tracking-wider text-gray-500">Quick Test Accounts</span>
-              <span className="h-px flex-1 bg-gray-200" />
-            </div>
-
-            <div className="mt-6 grid grid-cols-3 gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  form.setValue("email", "admin@acme.com");
-                  form.setValue("password", "password123");
-                }}
-                className="flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-              >
-                Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  form.setValue("email", "manager@acme.com");
-                  form.setValue("password", "password123");
-                }}
-                className="flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-              >
-                Manager
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  form.setValue("email", "employee@acme.com");
-                  form.setValue("password", "password123");
-                }}
-                className="flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-              >
-                Employee
-              </button>
-            </div>
-          </div>
+          <TestAccounts
+            onSelect={(role) => {
+              if (role === "ADMIN") {
+                form.setValue("email", "admin@acme.com");
+              }
+              if (role === "MANAGER") {
+                form.setValue("email", "manager@acme.com");
+              }
+              if (role === "EMPLOYEE") {
+                form.setValue("email", "employee@acme.com");
+              }
+              form.setValue("password", "password123");
+            }}
+          />
         </div>
       </div>
     </div>
