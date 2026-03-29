@@ -54,10 +54,20 @@ export async function convertCurrency(
 // Fetch all available currencies from restcountries.com
 interface CountryCurrency {
   name: { common: string };
+  cca2?: string;
   currencies: Record<string, { name: string; symbol: string }>;
 }
 
+export interface CountryCurrencyOption {
+  countryCode: string;
+  countryName: string;
+  currencyCode: string;
+  currencyName: string;
+  currencySymbol: string;
+}
+
 let currencyListCache: { code: string; name: string; symbol: string }[] | null = null;
+let countryCurrencyCache: CountryCurrencyOption[] | null = null;
 
 export async function getAvailableCurrencies(): Promise<
   { code: string; name: string; symbol: string }[]
@@ -95,6 +105,72 @@ export async function getAvailableCurrencies(): Promise<
       { code: "GBP", name: "British Pound", symbol: "£" },
       { code: "INR", name: "Indian Rupee", symbol: "₹" },
       { code: "JPY", name: "Japanese Yen", symbol: "¥" },
+    ];
+  }
+}
+
+export async function getCountryCurrencyOptions(): Promise<CountryCurrencyOption[]> {
+  if (countryCurrencyCache) return countryCurrencyCache;
+
+  try {
+    const res = await fetch(
+      "https://restcountries.com/v3.1/all?fields=name,cca2,currencies",
+      { next: { revalidate: 86400 } }
+    );
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch countries: ${res.statusText}`);
+    }
+
+    const data: CountryCurrency[] = await res.json();
+
+    countryCurrencyCache = data
+      .flatMap((country) => {
+        if (!country.currencies || !country.cca2 || !country.name?.common) {
+          return [];
+        }
+
+        return Object.entries(country.currencies).map(([currencyCode, currencyInfo]) => ({
+          countryCode: country.cca2 as string,
+          countryName: country.name.common,
+          currencyCode,
+          currencyName: currencyInfo.name ?? currencyCode,
+          currencySymbol: currencyInfo.symbol ?? currencyCode,
+        }));
+      })
+      .sort((a, b) => a.countryName.localeCompare(b.countryName));
+
+    return countryCurrencyCache;
+  } catch {
+    return [
+      {
+        countryCode: "US",
+        countryName: "United States",
+        currencyCode: "USD",
+        currencyName: "US Dollar",
+        currencySymbol: "$",
+      },
+      {
+        countryCode: "IN",
+        countryName: "India",
+        currencyCode: "INR",
+        currencyName: "Indian Rupee",
+        currencySymbol: "₹",
+      },
+      {
+        countryCode: "GB",
+        countryName: "United Kingdom",
+        currencyCode: "GBP",
+        currencyName: "British Pound",
+        currencySymbol: "£",
+      },
+      {
+        countryCode: "DE",
+        countryName: "Germany",
+        currencyCode: "EUR",
+        currencyName: "Euro",
+        currencySymbol: "€",
+      },
     ];
   }
 }

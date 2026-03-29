@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,12 +10,23 @@ import { Building2, User, Mail, Lock, DollarSign, Loader2, ArrowRight, Check } f
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
+type CountryCurrencyOption = {
+  countryCode: string;
+  countryName: string;
+  currencyCode: string;
+  currencyName: string;
+  currencySymbol: string;
+};
+
 const inputClass =
   "block w-full rounded-xl border border-surface-border/90 bg-surface-low py-2.5 pl-10 pr-4 text-on-surface shadow-inner shadow-on-surface/[0.02] placeholder:text-on-surface-variant/55 focus:border-primary/45 focus:bg-surface-lowest focus:outline-none focus:ring-2 focus:ring-primary/12 sm:text-sm";
 
 export default function SignupPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [countries, setCountries] = useState<CountryCurrencyOption[]>([]);
+  const [selectedCountryCode, setSelectedCountryCode] = useState<string>("US");
+  const [manualCurrencyOverride, setManualCurrencyOverride] = useState<boolean>(false);
 
   const form = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
@@ -44,6 +55,37 @@ export default function SignupPage() {
       setError(err instanceof Error ? err.message : "An unknown error occurred");
     }
   };
+
+  useEffect(() => {
+    const loadCountries = async () => {
+      try {
+        const res = await fetch("/api/countries", { method: "GET" });
+        const json = await res.json();
+        if (!res.ok || !Array.isArray(json.countries)) {
+          return;
+        }
+        setCountries(json.countries);
+      } catch {
+        setCountries([]);
+      }
+    };
+
+    loadCountries();
+  }, []);
+
+  useEffect(() => {
+    if (manualCurrencyOverride) return;
+    if (countries.length === 0) return;
+
+    const matched = countries.find((country) => country.countryCode === selectedCountryCode);
+    if (!matched) return;
+
+    form.setValue("baseCurrency", matched.currencyCode, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+  }, [countries, selectedCountryCode, manualCurrencyOverride, form]);
 
   const points = [
     "Company-wide policies and approval chains",
@@ -177,12 +219,59 @@ export default function SignupPage() {
                   </div>
 
                   <div>
+                    <label htmlFor="su-country" className="block text-sm font-medium text-on-surface">
+                      Country
+                    </label>
+                    <div className="relative mt-2">
+                      <Building2 className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-on-surface-variant/80" />
+                      <select
+                        id="su-country"
+                        value={selectedCountryCode}
+                        onChange={(event) => setSelectedCountryCode(event.target.value)}
+                        className={cn(inputClass, "cursor-pointer appearance-none pr-10")}
+                      >
+                        <option value="">Select country</option>
+                        {countries.map((country) => (
+                          <option key={`${country.countryCode}-${country.currencyCode}`} value={country.countryCode}>
+                            {country.countryName} ({country.currencyCode})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
                     <label htmlFor="su-currency" className="block text-sm font-medium text-on-surface">
                       Base currency
                     </label>
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <p className="text-xs text-on-surface-variant">
+                        {manualCurrencyOverride
+                          ? "Manual override enabled"
+                          : "Auto-selected from country"}
+                      </p>
+                      <label className="flex items-center gap-2 text-xs text-on-surface-variant">
+                        <input
+                          type="checkbox"
+                          checked={manualCurrencyOverride}
+                          onChange={(event) => setManualCurrencyOverride(event.target.checked)}
+                          className="h-4 w-4 rounded border-surface-border"
+                        />
+                        Edit manually
+                      </label>
+                    </div>
                     <div className="relative mt-2">
                       <DollarSign className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-on-surface-variant/80" />
-                      <select id="su-currency" {...form.register("baseCurrency")} className={cn(inputClass, "cursor-pointer appearance-none pr-10")}>
+                      <select
+                        id="su-currency"
+                        {...form.register("baseCurrency")}
+                        disabled={!manualCurrencyOverride}
+                        className={cn(
+                          inputClass,
+                          "appearance-none pr-10",
+                          manualCurrencyOverride ? "cursor-pointer" : "cursor-not-allowed opacity-80"
+                        )}
+                      >
                         <option value="USD">USD — US Dollar</option>
                         <option value="EUR">EUR — Euro</option>
                         <option value="GBP">GBP — British Pound</option>
