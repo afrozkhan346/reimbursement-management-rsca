@@ -7,7 +7,17 @@ import { createUserSchema } from "@/lib/schemas";
 export async function GET() {
   try {
     const users = await prisma.user.findMany({
-      include: {
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        department: true,
+        avatarUrl: true,
+        companyId: true,
+        managerId: true,
+        createdAt: true,
+        updatedAt: true,
         manager: { select: { id: true, name: true } },
         company: { select: { id: true, name: true, baseCurrency: true } },
       },
@@ -55,6 +65,18 @@ export async function POST(request: NextRequest) {
         department,
         managerId: managerId || undefined,
         companyId: company.id,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        department: true,
+        avatarUrl: true,
+        companyId: true,
+        managerId: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
