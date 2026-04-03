@@ -1,10 +1,21 @@
 // Seed script — auto-seeds default Company, Admin, Manager, Employee, and Approval Rules
+import "dotenv/config";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL environment variable is not set");
+}
+
+const adapter = new PrismaPg({ connectionString: databaseUrl });
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log("🌱 Seeding database...");
+  const demoPasswordHash = await bcrypt.hash("DemoPass123!", 10);
 
   // 1. Create default company
   const company = await prisma.company.upsert({
@@ -21,9 +32,16 @@ async function main() {
   // 2. Create Admin user
   const admin = await prisma.user.upsert({
     where: { email: "admin@acme.com" },
-    update: {},
+    update: {
+      password: demoPasswordHash,
+      name: "Carol Williams",
+      role: "ADMIN",
+      department: "Finance",
+      companyId: company.id,
+    },
     create: {
       email: "admin@acme.com",
+      password: demoPasswordHash,
       name: "Carol Williams",
       role: "ADMIN",
       department: "Finance",
@@ -35,9 +53,16 @@ async function main() {
   // 3. Create Manager user
   const manager = await prisma.user.upsert({
     where: { email: "manager@acme.com" },
-    update: {},
+    update: {
+      password: demoPasswordHash,
+      name: "Bob Martinez",
+      role: "MANAGER",
+      department: "Engineering",
+      companyId: company.id,
+    },
     create: {
       email: "manager@acme.com",
+      password: demoPasswordHash,
       name: "Bob Martinez",
       role: "MANAGER",
       department: "Engineering",
@@ -49,9 +74,17 @@ async function main() {
   // 4. Create Employee user (reports to Manager)
   const employee = await prisma.user.upsert({
     where: { email: "employee@acme.com" },
-    update: {},
+    update: {
+      password: demoPasswordHash,
+      name: "Alice Johnson",
+      role: "EMPLOYEE",
+      department: "Engineering",
+      companyId: company.id,
+      managerId: manager.id,
+    },
     create: {
       email: "employee@acme.com",
+      password: demoPasswordHash,
       name: "Alice Johnson",
       role: "EMPLOYEE",
       department: "Engineering",
