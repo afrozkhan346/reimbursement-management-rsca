@@ -80,12 +80,29 @@ DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DB_NAME"
 JWT_SECRET="replace-with-a-strong-secret"
 ```
 
+Example for free local development:
+
+```env
+DATABASE_URL="postgresql://postgres:YOUR_LOCAL_PASSWORD@localhost:5432/reimbursement_db?schema=public"
+JWT_SECRET="replace-with-a-strong-secret"
+```
+
 Notes:
 
 - `JWT_SECRET` has a development fallback in code, but set it explicitly for real environments.
 - `DATABASE_URL` is required by Prisma.
 
 ## Local Development Setup
+
+### 0. Install PostgreSQL (free, local)
+
+Windows (winget):
+
+```bash
+winget install -e --id PostgreSQL.PostgreSQL.16 --accept-package-agreements --accept-source-agreements --silent
+```
+
+Create a local DB named `reimbursement_db` and set `DATABASE_URL` in `.env`.
 
 ### 1. Install dependencies
 
@@ -110,13 +127,13 @@ Open http://localhost:3000
 
 ### 4. Seed sample data (optional but recommended)
 
-Call:
+Run:
 
-```http
-GET /api/seed
+```bash
+npm run db:seed
 ```
 
-Sample seeded accounts (password: `password123`):
+Sample seeded accounts (password: `DemoPass123!`):
 
 - admin@acme.com (`ADMIN`)
 - manager@acme.com (`MANAGER`)
@@ -150,6 +167,7 @@ Most non-auth routes are protected by middleware and require the auth cookie.
 - `npm run build` - production build
 - `npm run start` - start built app
 - `npm run lint` - run ESLint
+- `npm run db:seed` - seed local database with demo company/users/rules/expenses
 
 ## Branching Workflow
 

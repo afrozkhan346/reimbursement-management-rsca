@@ -3,11 +3,20 @@ import { NextRequest, NextResponse } from "next/server";
 // POST /api/ocr — Extract text from receipt image using Tesseract.js
 export async function POST(request: NextRequest) {
   try {
+    const contentType = request.headers.get("content-type") || "";
+    if (!contentType.includes("multipart/form-data")) {
+      return NextResponse.json({ error: "Expected multipart form-data upload" }, { status: 400 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("receipt") as File | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+    }
+
+    if (!file.type.startsWith("image/")) {
+      return NextResponse.json({ error: "Only image uploads are supported" }, { status: 400 });
     }
 
     // Convert File to buffer
